@@ -1,77 +1,82 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>3e loi de Newton</title>
+  <meta charset="UTF-8" />
+  <title>3e loi de Newton</title>
+  <style>
+    body{
+      margin:0;
+      background:#dcdcdc;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+      font-family:Arial, Helvetica, sans-serif;
+    }
 
-<style>
-body{
-margin:0;
-background:#ddd;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-font-family:Arial;
-}
+    #container{
+      position:relative;
+      width:640px;
+      height:400px;
+      background:#efefef;
+      overflow:hidden;
+    }
 
-#container{
-position:relative;
-width:640px;
-height:400px;
-background:white;
-}
+    canvas{
+      position:absolute;
+      inset:0;
+      display:block;
+    }
 
-canvas{
-position:absolute;
-left:0;
-top:0;
-}
+    .hand{
+      position:absolute;
+      pointer-events:none;
+      user-select:none;
+      -webkit-user-drag:none;
+      transform-origin:center center;
+    }
 
-.hand{
-position:absolute;
-pointer-events:none;
-}
+    #handL{
+      width:220px;
+      height:auto;
+      left:0;
+      top:0;
+    }
 
-#handL{
-left:-90px;
-top:120px;
-width:220px;
-}
+    #handR{
+      width:220px;
+      height:auto;
+      left:0;
+      top:0;
+    }
 
-#handR{
-right:-90px;
-top:120px;
-width:220px;
-}
-
-.credit{
-position:absolute;
-bottom:4px;
-width:100%;
-text-align:center;
-font-size:13px;
-color:#888;
-}
-</style>
+    .credit{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:6px;
+      text-align:center;
+      font-size:11px;
+      color:#b5b5b5;
+      line-height:1.2;
+      pointer-events:none;
+      padding:0 10px;
+    }
+  </style>
 </head>
-
 <body>
 
-<div id="container">
+  <div id="container">
+    <canvas id="c" width="640" height="400"></canvas>
 
-<canvas id="c" width="640" height="400"></canvas>
+    <img id="handL" class="hand" src="hand_left.PNG" alt="">
+    <img id="handR" class="hand" src="hand_right.PNG" alt="">
 
-<img id="handL" class="hand" src="hand_left.png">
-<img id="handR" class="hand" src="hand_right.png">
+    <div class="credit">
+      Animation adaptée et codée à partir de www.vascak.cz par : Virginie Fourcassier - Lycée Pierre de Fermat - Toulouse
+    </div>
+  </div>
 
-<div class="credit">
-Animation adaptée et codée à partir de www.vascak.cz par : Virginie Fourcassier - Lycée Pierre de Fermat - Toulouse
-</div>
-
-</div>
-
-<script src="app.js"></script>
-
+  <script src="app.js"></script>
 </body>
 </html>
