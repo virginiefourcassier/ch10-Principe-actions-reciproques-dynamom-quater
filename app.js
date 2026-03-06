@@ -23,7 +23,7 @@
   const scaleImg = new Image();
   scaleImg.src = "scale_center.png";
 
-  // Position initiale proche de l'original
+  // Poignées : position initiale
   const p1 = { x: 130, y: 200 };
   const p2 = { x: 510, y: 200 };
 
@@ -31,17 +31,17 @@
   let dragOffsetX = 0;
   let dragOffsetY = 0;
 
-  // --- Réglages visuels ---
+  // Réglages visuels
   const handleRadius = 20;
-
-  // Points d'ancrage des doigts sur les PNG (en px affichés)
-  // Ajustés pour vos images actuelles à 230 px de large
-  const leftHandAnchor = { x: 198, y: 192 };
-  const rightHandAnchor = { x: 18, y: 128 };
-
-  // Longueur des corps noirs
   const bodyLength = 122;
   const bodyHeight = 28;
+
+  // Taille CONSTANTE de la bande graduée
+  const scaleDrawWidth = 238;
+
+  // Points d’ancrage des mains
+  const leftHandAnchor = { x: 198, y: 192 };
+  const rightHandAnchor = { x: 18, y: 128 };
 
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
@@ -68,8 +68,8 @@
   }
 
   function enforceLeftDrag() {
-    let d = dist(p1.x, p1.y, p2.x, p2.y);
-    let a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    const d = dist(p1.x, p1.y, p2.x, p2.y);
+    const a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
     if (d < minVzdalenost) {
       p1.x = p2.x - Math.cos(a) * minVzdalenost;
@@ -85,8 +85,8 @@
   }
 
   function enforceRightDrag() {
-    let d = dist(p1.x, p1.y, p2.x, p2.y);
-    let a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    const d = dist(p1.x, p1.y, p2.x, p2.y);
+    const a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
     if (d < minVzdalenost) {
       p2.x = p1.x + Math.cos(a) * minVzdalenost;
@@ -229,70 +229,67 @@
     ctx.restore();
   }
 
-  function drawCenterScale(angle, centerX, centerY, drawWidth) {
+  function drawCenterScale(angle, centerX, centerY) {
     if (!scaleImg.complete || !scaleImg.naturalWidth) return;
 
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(angle);
 
-    const h = Math.round(scaleImg.naturalHeight * (drawWidth / scaleImg.naturalWidth));
+    const drawW = scaleDrawWidth;
+    const drawH = Math.round(scaleImg.naturalHeight * (drawW / scaleImg.naturalWidth));
 
     ctx.drawImage(
       scaleImg,
-      -drawWidth / 2,
-      -h / 2,
-      drawWidth,
-      h
+      -drawW / 2,
+      -drawH / 2,
+      drawW,
+      drawH
     );
 
     ctx.restore();
   }
 
   function updateHands(angle) {
-    // Rotation un peu atténuée pour garder un rendu proche de l’original
-    const handAngle = angle;
-
     handL.style.transformOrigin = `${leftHandAnchor.x}px ${leftHandAnchor.y}px`;
     handR.style.transformOrigin = `${rightHandAnchor.x}px ${rightHandAnchor.y}px`;
 
     handL.style.left = `${p1.x - leftHandAnchor.x}px`;
     handL.style.top = `${p1.y - leftHandAnchor.y}px`;
-    handL.style.transform = `rotate(${handAngle}rad)`;
+    handL.style.transform = `rotate(${angle}rad)`;
 
     handR.style.left = `${p2.x - rightHandAnchor.x}px`;
     handR.style.top = `${p2.y - rightHandAnchor.y}px`;
-    handR.style.transform = `rotate(${handAngle}rad)`;
+    handR.style.transform = `rotate(${angle}rad)`;
   }
 
   function drawScene() {
     ctx.clearRect(0, 0, W, H);
 
-    const d = dist(p1.x, p1.y, p2.x, p2.y);
     const a = angleBetween(p1, p2);
 
-    // Corps des dynamomètres
+    // Centre géométrique des poignées
+    const centerX = (p1.x + p2.x) / 2;
+    const centerY = (p1.y + p2.y) / 2;
+
+    // La bande est fixe et totalement visible à étirement max.
+    // On place les corps noirs à l'extérieur de la bande.
+    const halfScale = scaleDrawWidth / 2;
+
     const leftBodyCenter = {
-      x: p1.x + Math.cos(a) * 88,
-      y: p1.y + Math.sin(a) * 88
+      x: centerX - Math.cos(a) * (halfScale / 2 + bodyLength / 2 + 6),
+      y: centerY - Math.sin(a) * (halfScale / 2 + bodyLength / 2 + 6)
     };
 
     const rightBodyCenter = {
-      x: p2.x - Math.cos(a) * 88,
-      y: p2.y - Math.sin(a) * 88
+      x: centerX + Math.cos(a) * (halfScale / 2 + bodyLength / 2 + 6),
+      y: centerY + Math.sin(a) * (halfScale / 2 + bodyLength / 2 + 6)
     };
 
-    // Centre de l’ensemble
-    const cx = (leftBodyCenter.x + rightBodyCenter.x) / 2;
-    const cy = (leftBodyCenter.y + rightBodyCenter.y) / 2;
+    // Bande centrale constante
+    drawCenterScale(a, centerX, centerY);
 
-    // Largeur de la bande centrale : agrandie et étirable
-    const centerWidth = Math.max(170, d - 118);
-
-    // Bande graduée centrale sous les corps noirs
-    drawCenterScale(a, cx, cy, centerWidth);
-
-    // Corps noirs au-dessus de la bande
+    // Corps noirs
     drawBody(leftBodyCenter.x, leftBodyCenter.y, a, "10 N");
     drawBody(rightBodyCenter.x, rightBodyCenter.y, a, "10 N");
 
