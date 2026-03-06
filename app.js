@@ -10,7 +10,7 @@
   const W = canvas.width;
   const H = canvas.height;
 
-  // Contraintes originales
+  // Contraintes de déplacement
   const minVzdalenost = 308;
   const maxVzdalenost = minVzdalenost + 200;
 
@@ -23,9 +23,9 @@
   const scaleImg = new Image();
   scaleImg.src = "scale_center.png";
 
-  // Poignées : position initiale
-  const p1 = { x: 130, y: 200 };
-  const p2 = { x: 510, y: 200 };
+  // Poignées : rapprochées au départ pour cacher complètement la bande graduée
+  const p1 = { x: 150, y: 200 };
+  const p2 = { x: 490, y: 200 };
 
   let drag = null;
   let dragOffsetX = 0;
@@ -35,9 +35,14 @@
   const handleRadius = 20;
   const bodyLength = 122;
   const bodyHeight = 28;
-
-  // Taille CONSTANTE de la bande graduée
   const scaleDrawWidth = 238;
+
+  // Décalages entre poignées et anneaux
+  const sideRingOffset = 18;
+
+  // Au départ, la bande doit être totalement masquée par les deux corps noirs :
+  // on choisit un recouvrement suffisant.
+  const bodyGapFromScale = -10;
 
   // Points d’ancrage des mains
   const leftHandAnchor = { x: 198, y: 192 };
@@ -162,8 +167,8 @@
 
   function drawSideRing(x, y, angle, side) {
     const dir = side === "left" ? 1 : -1;
-    const rx = x + Math.cos(angle) * 18 * dir;
-    const ry = y + Math.sin(angle) * 18 * dir;
+    const rx = x + Math.cos(angle) * sideRingOffset * dir;
+    const ry = y + Math.sin(angle) * sideRingOffset * dir;
 
     ctx.save();
     ctx.translate(rx, ry);
@@ -268,40 +273,33 @@
 
     const a = angleBetween(p1, p2);
 
-    // Centre géométrique des poignées
     const centerX = (p1.x + p2.x) / 2;
     const centerY = (p1.y + p2.y) / 2;
 
-    // La bande est fixe et totalement visible à étirement max.
-    // On place les corps noirs à l'extérieur de la bande.
-    const halfScale = scaleDrawWidth / 2;
-
+    // Corps noirs rapprochés pour masquer complètement la bande au départ
     const leftBodyCenter = {
-      x: centerX - Math.cos(a) * (halfScale / 2 + bodyLength / 2 + 6),
-      y: centerY - Math.sin(a) * (halfScale / 2 + bodyLength / 2 + 6)
+      x: centerX - Math.cos(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale),
+      y: centerY - Math.sin(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale)
     };
 
     const rightBodyCenter = {
-      x: centerX + Math.cos(a) * (halfScale / 2 + bodyLength / 2 + 6),
-      y: centerY + Math.sin(a) * (halfScale / 2 + bodyLength / 2 + 6)
+      x: centerX + Math.cos(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale),
+      y: centerY + Math.sin(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale)
     };
 
-    // Bande centrale constante
+    // Bande centrale derrière les corps
     drawCenterScale(a, centerX, centerY);
 
-    // Corps noirs
+    // Corps noirs devant, pour cacher la bande au repos
     drawBody(leftBodyCenter.x, leftBodyCenter.y, a, "10 N");
     drawBody(rightBodyCenter.x, rightBodyCenter.y, a, "10 N");
 
-    // Anneaux latéraux
     drawSideRing(p1.x, p1.y, a, "left");
     drawSideRing(p2.x, p2.y, a, "right");
 
-    // Pastilles colorées
     drawPastille(p1.x, p1.y, "#ffd8d8", "#ff2323", "#ff3434");
     drawPastille(p2.x, p2.y, "#dff3ff", "#2233ff", "#1b93ff");
 
-    // Mains
     updateHands(a);
 
     requestAnimationFrame(drawScene);
