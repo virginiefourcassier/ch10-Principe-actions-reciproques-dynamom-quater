@@ -26,6 +26,7 @@
       position:absolute;
       inset:0;
       display:block;
+      z-index:2;
     }
 
     .hand{
@@ -33,18 +34,19 @@
       pointer-events:none;
       user-select:none;
       -webkit-user-drag:none;
-      transform-origin:center center;
+      z-index:3;
+      display:block;
     }
 
     #handL{
-      width:220px;
+      width:230px;
       height:auto;
       left:0;
       top:0;
     }
 
     #handR{
-      width:220px;
+      width:230px;
       height:auto;
       left:0;
       top:0;
@@ -60,7 +62,8 @@
       color:#b5b5b5;
       line-height:1.2;
       pointer-events:none;
-      padding:0 10px;
+      z-index:4;
+      padding:0 8px;
     }
   </style>
 </head>
