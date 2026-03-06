@@ -10,30 +10,38 @@
   const W = canvas.width;
   const H = canvas.height;
 
-  // Contraintes reprises du HTML original Vascak
+  // Contraintes originales
   const minVzdalenost = 308;
   const maxVzdalenost = minVzdalenost + 200;
+
   const vlevo = 20;
-  const vpravo = W - 40;
+  const vpravo = W - 20;
   const nahore = 20;
-  const dole = H - 40;
+  const dole = H - 60;
 
   // Images
   const scaleImg = new Image();
   scaleImg.src = "scale_center.png";
 
-  // Poignées (centres des pastilles)
-  const p1 = { x: 110, y: 200 }; // gauche
-  const p2 = { x: 530, y: 200 }; // droite
-
-  // Décalages visuels entre centre de la pastille et point d'accroche main
-  // Ajustés pour vos PNG actuels
-  const leftAnchor = { x: 173, y: 156 };
-  const rightAnchor = { x: 48, y: 148 };
+  // Position initiale proche de l'original
+  const p1 = { x: 130, y: 200 };
+  const p2 = { x: 510, y: 200 };
 
   let drag = null;
   let dragOffsetX = 0;
   let dragOffsetY = 0;
+
+  // --- Réglages visuels ---
+  const handleRadius = 20;
+
+  // Points d'ancrage des doigts sur les PNG (en px affichés)
+  // Ajustés pour vos images actuelles à 230 px de large
+  const leftHandAnchor = { x: 198, y: 192 };
+  const rightHandAnchor = { x: 18, y: 128 };
+
+  // Longueur des corps noirs
+  const bodyLength = 122;
+  const bodyHeight = 28;
 
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
@@ -41,18 +49,6 @@
 
   function dist(ax, ay, bx, by) {
     return Math.hypot(ax - bx, ay - by);
-  }
-
-  function angleBetween(a, b) {
-    return Math.atan2(b.y - a.y, b.x - a.x);
-  }
-
-  function setCursor(hitLeft, hitRight) {
-    canvas.style.cursor = (hitLeft || hitRight) ? "pointer" : "default";
-  }
-
-  function hitHandle(mx, my, p, r = 22) {
-    return dist(mx, my, p.x, p.y) <= r;
   }
 
   function getMouse(evt) {
@@ -63,15 +59,23 @@
     };
   }
 
-  function enforceByDraggingLeft() {
-    const d = dist(p1.x, p1.y, p2.x, p2.y);
+  function hitHandle(mx, my, p, r = 23) {
+    return dist(mx, my, p.x, p.y) <= r;
+  }
+
+  function angleBetween(a, b) {
+    return Math.atan2(b.y - a.y, b.x - a.x);
+  }
+
+  function enforceLeftDrag() {
+    let d = dist(p1.x, p1.y, p2.x, p2.y);
+    let a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
     if (d < minVzdalenost) {
-      const a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
       p1.x = p2.x - Math.cos(a) * minVzdalenost;
       p1.y = p2.y - Math.sin(a) * minVzdalenost;
-    } else if (d > maxVzdalenost) {
-      const a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    }
+    if (d > maxVzdalenost) {
       p1.x = p2.x - Math.cos(a) * maxVzdalenost;
       p1.y = p2.y - Math.sin(a) * maxVzdalenost;
     }
@@ -80,15 +84,15 @@
     p1.y = clamp(p1.y, nahore, dole);
   }
 
-  function enforceByDraggingRight() {
-    const d = dist(p1.x, p1.y, p2.x, p2.y);
+  function enforceRightDrag() {
+    let d = dist(p1.x, p1.y, p2.x, p2.y);
+    let a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
     if (d < minVzdalenost) {
-      const a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
       p2.x = p1.x + Math.cos(a) * minVzdalenost;
       p2.y = p1.y + Math.sin(a) * minVzdalenost;
-    } else if (d > maxVzdalenost) {
-      const a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    }
+    if (d > maxVzdalenost) {
       p2.x = p1.x + Math.cos(a) * maxVzdalenost;
       p2.y = p1.y + Math.sin(a) * maxVzdalenost;
     }
@@ -96,42 +100,6 @@
     p2.x = clamp(p2.x, vlevo, vpravo);
     p2.y = clamp(p2.y, nahore, dole);
   }
-
-  function enforceGlobalAfterClamp() {
-    const d = dist(p1.x, p1.y, p2.x, p2.y);
-    const a = angleBetween(p1, p2);
-
-    if (d < minVzdalenost) {
-      p2.x = p1.x + Math.cos(a) * minVzdalenost;
-      p2.y = p1.y + Math.sin(a) * minVzdalenost;
-    } else if (d > maxVzdalenost) {
-      p2.x = p1.x + Math.cos(a) * maxVzdalenost;
-      p2.y = p1.y + Math.sin(a) * maxVzdalenost;
-    }
-  }
-
-  canvas.addEventListener("mousemove", (evt) => {
-    const m = getMouse(evt);
-
-    if (!drag) {
-      setCursor(hitHandle(m.x, m.y, p1), hitHandle(m.x, m.y, p2));
-      return;
-    }
-
-    if (drag === "left") {
-      p1.x = clamp(m.x - dragOffsetX, vlevo, vpravo);
-      p1.y = clamp(m.y - dragOffsetY, nahore, dole);
-      enforceByDraggingLeft();
-      enforceGlobalAfterClamp();
-    }
-
-    if (drag === "right") {
-      p2.x = clamp(m.x - dragOffsetX, vlevo, vpravo);
-      p2.y = clamp(m.y - dragOffsetY, nahore, dole);
-      enforceByDraggingRight();
-      enforceGlobalAfterClamp();
-    }
-  });
 
   canvas.addEventListener("mousedown", (evt) => {
     const m = getMouse(evt);
@@ -150,112 +118,109 @@
     }
   });
 
+  canvas.addEventListener("mousemove", (evt) => {
+    const m = getMouse(evt);
+
+    if (!drag) {
+      const overLeft = hitHandle(m.x, m.y, p1);
+      const overRight = hitHandle(m.x, m.y, p2);
+      canvas.style.cursor = (overLeft || overRight) ? "pointer" : "default";
+      return;
+    }
+
+    if (drag === "left") {
+      p1.x = clamp(m.x - dragOffsetX, vlevo, vpravo);
+      p1.y = clamp(m.y - dragOffsetY, nahore, dole);
+      enforceLeftDrag();
+    }
+
+    if (drag === "right") {
+      p2.x = clamp(m.x - dragOffsetX, vlevo, vpravo);
+      p2.y = clamp(m.y - dragOffsetY, nahore, dole);
+      enforceRightDrag();
+    }
+  });
+
   window.addEventListener("mouseup", () => {
     drag = null;
   });
 
-  // ---------- Dessin ----------
-  function drawPastille(x, y, colorA, colorB, outerStroke) {
-    const g = ctx.createRadialGradient(x - 5, y - 5, 3, x, y, 24);
+  function drawPastille(x, y, colorA, colorB, stroke) {
+    const g = ctx.createRadialGradient(x - 5, y - 5, 2, x, y, 22);
     g.addColorStop(0, colorA);
     g.addColorStop(1, colorB);
 
     ctx.beginPath();
-    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.arc(x, y, handleRadius, 0, Math.PI * 2);
     ctx.fillStyle = g;
     ctx.fill();
 
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = outerStroke;
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = stroke;
     ctx.stroke();
   }
 
-  function drawRing(x, y, angle, side) {
-    const offset = side === "left" ? 18 : -18;
-    const rx = x + Math.cos(angle) * offset;
-    const ry = y + Math.sin(angle) * offset;
+  function drawSideRing(x, y, angle, side) {
+    const dir = side === "left" ? 1 : -1;
+    const rx = x + Math.cos(angle) * 18 * dir;
+    const ry = y + Math.sin(angle) * 18 * dir;
 
     ctx.save();
     ctx.translate(rx, ry);
     ctx.rotate(angle);
 
-    // anneau métal
     const grad = ctx.createLinearGradient(-14, 0, 14, 0);
-    grad.addColorStop(0, "#666");
-    grad.addColorStop(0.2, "#dedede");
+    grad.addColorStop(0, "#5b5b5b");
+    grad.addColorStop(0.22, "#dddddd");
     grad.addColorStop(0.5, "#ffffff");
-    grad.addColorStop(0.8, "#a7a7a7");
-    grad.addColorStop(1, "#555");
+    grad.addColorStop(0.78, "#a9a9a9");
+    grad.addColorStop(1, "#595959");
 
     ctx.beginPath();
     ctx.ellipse(0, 0, 12, 16, 0, 0, Math.PI * 2);
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "#555";
     ctx.stroke();
 
     ctx.beginPath();
     ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "#efefef";
+    ctx.fillStyle = "#f1f1f1";
     ctx.fill();
-    ctx.strokeStyle = "#7a7a7a";
+    ctx.strokeStyle = "#8d8d8d";
     ctx.stroke();
 
     ctx.restore();
   }
 
-  function drawHook(x, y, angle, side) {
-    const dir = side === "left" ? 1 : -1;
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-
-    ctx.strokeStyle = "#4b4b4b";
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(16 * dir, 0);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(21 * dir, 0, 9, Math.PI * 0.2 * dir, Math.PI * 1.5 * dir, dir < 0);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function drawBody(cx, cy, angle, lengthPx, label) {
+  function drawBody(cx, cy, angle, label) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    const w = lengthPx;
-    const h = 28;
+    const w = bodyLength;
+    const h = bodyHeight;
 
     const bodyGrad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
-    bodyGrad.addColorStop(0, "#141414");
-    bodyGrad.addColorStop(0.25, "#7c7c7c");
-    bodyGrad.addColorStop(0.5, "#3b3b3b");
-    bodyGrad.addColorStop(0.75, "#1d1d1d");
-    bodyGrad.addColorStop(1, "#060606");
+    bodyGrad.addColorStop(0, "#111");
+    bodyGrad.addColorStop(0.2, "#7f7f7f");
+    bodyGrad.addColorStop(0.45, "#4a4a4a");
+    bodyGrad.addColorStop(0.72, "#202020");
+    bodyGrad.addColorStop(1, "#080808");
 
     ctx.fillStyle = bodyGrad;
     ctx.fillRect(-w / 2, -h / 2, w, h);
 
-    // petites butées
-    ctx.fillStyle = "#515151";
+    ctx.fillStyle = "#4f4f4f";
     ctx.fillRect(-w / 2 - 4, -17, 8, 34);
     ctx.fillRect(w / 2 - 4, -17, 8, 34);
 
-    ctx.strokeStyle = "#1e1e1e";
+    ctx.strokeStyle = "#1b1b1b";
     ctx.lineWidth = 1;
     ctx.strokeRect(-w / 2, -h / 2, w, h);
 
-    ctx.fillStyle = "#f1f1f1";
+    ctx.fillStyle = "#efefef";
     ctx.font = "bold 15px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -264,111 +229,95 @@
     ctx.restore();
   }
 
-  function drawCenterScale(x1, y1, x2, y2, angle) {
+  function drawCenterScale(angle, centerX, centerY, drawWidth) {
     if (!scaleImg.complete || !scaleImg.naturalWidth) return;
 
-    const cx = (x1 + x2) / 2;
-    const cy = (y1 + y2) / 2;
-
-    const d = dist(x1, y1, x2, y2);
-
-    // largeur des deux corps noirs + anneaux/hameçons ≈ 244 px
-    // on garde seulement l’espace central
-    const targetWidth = Math.max(90, d - 244);
-
     ctx.save();
-    ctx.translate(cx, cy);
+    ctx.translate(centerX, centerY);
     ctx.rotate(angle);
 
-    const drawW = targetWidth;
-    const drawH = Math.round(scaleImg.naturalHeight * (drawW / scaleImg.naturalWidth));
+    const h = Math.round(scaleImg.naturalHeight * (drawWidth / scaleImg.naturalWidth));
 
-    ctx.drawImage(scaleImg, -drawW / 2, -drawH / 2, drawW, drawH);
+    ctx.drawImage(
+      scaleImg,
+      -drawWidth / 2,
+      -h / 2,
+      drawWidth,
+      h
+    );
 
     ctx.restore();
   }
 
   function updateHands(angle) {
-    // main gauche
-    const leftX = p1.x - leftAnchor.x;
-    const leftY = p1.y - leftAnchor.y;
-    handL.style.left = `${leftX}px`;
-    handL.style.top = `${leftY}px`;
-    handL.style.transform = `rotate(${angle}rad)`;
+    // Rotation un peu atténuée pour garder un rendu proche de l’original
+    const handAngle = angle;
 
-    // main droite
-    const rightX = p2.x - rightAnchor.x;
-    const rightY = p2.y - rightAnchor.y;
-    handR.style.left = `${rightX}px`;
-    handR.style.top = `${rightY}px`;
-    handR.style.transform = `rotate(${angle}rad)`;
+    handL.style.transformOrigin = `${leftHandAnchor.x}px ${leftHandAnchor.y}px`;
+    handR.style.transformOrigin = `${rightHandAnchor.x}px ${rightHandAnchor.y}px`;
+
+    handL.style.left = `${p1.x - leftHandAnchor.x}px`;
+    handL.style.top = `${p1.y - leftHandAnchor.y}px`;
+    handL.style.transform = `rotate(${handAngle}rad)`;
+
+    handR.style.left = `${p2.x - rightHandAnchor.x}px`;
+    handR.style.top = `${p2.y - rightHandAnchor.y}px`;
+    handR.style.transform = `rotate(${handAngle}rad)`;
   }
 
   function drawScene() {
     ctx.clearRect(0, 0, W, H);
 
+    const d = dist(p1.x, p1.y, p2.x, p2.y);
     const a = angleBetween(p1, p2);
 
-    // positions utiles
-    const leftRingX = p1.x + Math.cos(a) * 18;
-    const leftRingY = p1.y + Math.sin(a) * 18;
-
-    const rightRingX = p2.x - Math.cos(a) * 18;
-    const rightRingY = p2.y - Math.sin(a) * 18;
-
-    // corps gauche et droit
+    // Corps des dynamomètres
     const leftBodyCenter = {
-      x: leftRingX + Math.cos(a) * 75,
-      y: leftRingY + Math.sin(a) * 75
+      x: p1.x + Math.cos(a) * 88,
+      y: p1.y + Math.sin(a) * 88
     };
 
     const rightBodyCenter = {
-      x: rightRingX - Math.cos(a) * 75,
-      y: rightRingY - Math.sin(a) * 75
+      x: p2.x - Math.cos(a) * 88,
+      y: p2.y - Math.sin(a) * 88
     };
 
-    const leftHookBase = {
-      x: leftBodyCenter.x + Math.cos(a) * 64,
-      y: leftBodyCenter.y + Math.sin(a) * 64
-    };
+    // Centre de l’ensemble
+    const cx = (leftBodyCenter.x + rightBodyCenter.x) / 2;
+    const cy = (leftBodyCenter.y + rightBodyCenter.y) / 2;
 
-    const rightHookBase = {
-      x: rightBodyCenter.x - Math.cos(a) * 64,
-      y: rightBodyCenter.y - Math.sin(a) * 64
-    };
+    // Largeur de la bande centrale : agrandie et étirable
+    const centerWidth = Math.max(170, d - 118);
 
-    // centre
-    drawCenterScale(leftHookBase.x, leftHookBase.y, rightHookBase.x, rightHookBase.y, a);
+    // Bande graduée centrale sous les corps noirs
+    drawCenterScale(a, cx, cy, centerWidth);
 
-    // crochets centraux
-    drawHook(leftHookBase.x, leftHookBase.y, a, "left");
-    drawHook(rightHookBase.x, rightHookBase.y, a, "right");
+    // Corps noirs au-dessus de la bande
+    drawBody(leftBodyCenter.x, leftBodyCenter.y, a, "10 N");
+    drawBody(rightBodyCenter.x, rightBodyCenter.y, a, "10 N");
 
-    // corps noirs
-    drawBody(leftBodyCenter.x, leftBodyCenter.y, a, 120, "10 N");
-    drawBody(rightBodyCenter.x, rightBodyCenter.y, a, 120, "10 N");
+    // Anneaux latéraux
+    drawSideRing(p1.x, p1.y, a, "left");
+    drawSideRing(p2.x, p2.y, a, "right");
 
-    // anneaux latéraux
-    drawRing(p1.x, p1.y, a, "left");
-    drawRing(p2.x, p2.y, a, "right");
+    // Pastilles colorées
+    drawPastille(p1.x, p1.y, "#ffd8d8", "#ff2323", "#ff3434");
+    drawPastille(p2.x, p2.y, "#dff3ff", "#2233ff", "#1b93ff");
 
-    // poignées
-    drawPastille(p1.x, p1.y, "#ffdede", "#ff1f1f", "#ff2b2b");
-    drawPastille(p2.x, p2.y, "#dff5ff", "#112dff", "#1186ff");
-
+    // Mains
     updateHands(a);
 
     requestAnimationFrame(drawScene);
   }
 
-  function startWhenReady() {
+  function start() {
     drawScene();
   }
 
   if (scaleImg.complete) {
-    startWhenReady();
+    start();
   } else {
-    scaleImg.onload = startWhenReady;
-    scaleImg.onerror = startWhenReady;
+    scaleImg.onload = start;
+    scaleImg.onerror = start;
   }
 })();
