@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>3e loi de Newton</title>
+<style>
+body{
+margin:0;
+background:#ddd;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+font-family:Arial;
+}
+
+#container{
+position:relative;
+width:640px;
+height:400px;
+background:white;
+}
+
+canvas{
+position:absolute;
+left:0;
+top:0;
+}
+
+.hand{
+position:absolute;
+pointer-events:none;
+}
+
+#handL{
+left:-120px;
+top:120px;
+width:200px;
+}
+
+#handR{
+right:-120px;
+top:120px;
+width:200px;
+}
+
+.credit{
+position:absolute;
+bottom:4px;
+width:100%;
+text-align:center;
+font-size:14px;
+color:#aaa;
+}
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+<canvas id="c" width="640" height="400"></canvas>
+
+<img id="handL" class="hand" src="hand_left.png">
+<img id="handR" class="hand" src="hand_right.png">
+
+<div class="credit">www.vascak.cz</div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
