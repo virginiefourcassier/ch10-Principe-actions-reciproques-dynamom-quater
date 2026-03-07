@@ -10,7 +10,7 @@
   const W = canvas.width;
   const H = canvas.height;
 
-  // Contraintes de déplacement
+  // Contraintes
   const minVzdalenost = 308;
   const maxVzdalenost = minVzdalenost + 200;
 
@@ -23,7 +23,7 @@
   const scaleImg = new Image();
   scaleImg.src = "scale_center.png";
 
-  // Poignées : rapprochées au départ pour cacher complètement la bande graduée
+  // Position initiale : léger écart, crochet central visible
   const p1 = { x: 150, y: 200 };
   const p2 = { x: 490, y: 200 };
 
@@ -35,14 +35,13 @@
   const handleRadius = 20;
   const bodyLength = 122;
   const bodyHeight = 28;
-  const scaleDrawWidth = 238;
 
-  // Décalages entre poignées et anneaux
-  const sideRingOffset = 18;
-
-  // Au départ, la bande doit être totalement masquée par les deux corps noirs :
-  // on choisit un recouvrement suffisant.
-  const bodyGapFromScale = -10;
+  // Géométrie mécanique
+  const sideRingOffset = 18;   // anneau latéral par rapport à la pastille
+  const bodyCenterOffset = 84; // centre du corps noir par rapport à la poignée
+  const innerEndOffset = bodyCenterOffset + bodyLength / 2 + 4; // jusqu'au bord interne du corps
+  const scaleFullWidth = 238;  // largeur affichée max de scale_center
+  const visibleGapMax = maxVzdalenost - 2 * innerEndOffset;
 
   // Points d’ancrage des mains
   const leftHandAnchor = { x: 198, y: 192 };
@@ -56,6 +55,10 @@
     return Math.hypot(ax - bx, ay - by);
   }
 
+  function angleBetween(a, b) {
+    return Math.atan2(b.y - a.y, b.x - a.x);
+  }
+
   function getMouse(evt) {
     const r = canvas.getBoundingClientRect();
     return {
@@ -66,10 +69,6 @@
 
   function hitHandle(mx, my, p, r = 23) {
     return dist(mx, my, p.x, p.y) <= r;
-  }
-
-  function angleBetween(a, b) {
-    return Math.atan2(b.y - a.y, b.x - a.x);
   }
 
   function enforceLeftDrag() {
@@ -234,22 +233,30 @@
     ctx.restore();
   }
 
-  function drawCenterScale(angle, centerX, centerY) {
+  function drawCenterScale(angle, centerX, centerY, visibleGap) {
     if (!scaleImg.complete || !scaleImg.naturalWidth) return;
+    if (visibleGap <= 0.5) return;
+
+    const visibleWidth = clamp(
+      (visibleGap / visibleGapMax) * scaleFullWidth,
+      0,
+      scaleFullWidth
+    );
 
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(angle);
 
-    const drawW = scaleDrawWidth;
-    const drawH = Math.round(scaleImg.naturalHeight * (drawW / scaleImg.naturalWidth));
+    const drawH = Math.round(scaleImg.naturalHeight * (scaleFullWidth / scaleImg.naturalWidth));
+
+    // recadrage centré : on montre seulement la partie utile
+    const sx = (scaleImg.naturalWidth - (visibleWidth / scaleFullWidth) * scaleImg.naturalWidth) / 2;
+    const sw = scaleImg.naturalWidth - 2 * sx;
 
     ctx.drawImage(
       scaleImg,
-      -drawW / 2,
-      -drawH / 2,
-      drawW,
-      drawH
+      sx, 0, sw, scaleImg.naturalHeight,
+      -visibleWidth / 2, -drawH / 2, visibleWidth, drawH
     );
 
     ctx.restore();
@@ -273,33 +280,48 @@
 
     const a = angleBetween(p1, p2);
 
-    const centerX = (p1.x + p2.x) / 2;
-    const centerY = (p1.y + p2.y) / 2;
-
-    // Corps noirs rapprochés pour masquer complètement la bande au départ
+    // Corps noirs solidaires des poignées
     const leftBodyCenter = {
-      x: centerX - Math.cos(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale),
-      y: centerY - Math.sin(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale)
+      x: p1.x + Math.cos(a) * bodyCenterOffset,
+      y: p1.y + Math.sin(a) * bodyCenterOffset
     };
 
     const rightBodyCenter = {
-      x: centerX + Math.cos(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale),
-      y: centerY + Math.sin(a) * (scaleDrawWidth / 2 - bodyLength / 2 + bodyGapFromScale)
+      x: p2.x - Math.cos(a) * bodyCenterOffset,
+      y: p2.y - Math.sin(a) * bodyCenterOffset
     };
 
-    // Bande centrale derrière les corps
-    drawCenterScale(a, centerX, centerY);
+    // Bords internes des deux corps
+    const leftInner = {
+      x: p1.x + Math.cos(a) * innerEndOffset,
+      y: p1.y + Math.sin(a) * innerEndOffset
+    };
 
-    // Corps noirs devant, pour cacher la bande au repos
+    const rightInner = {
+      x: p2.x - Math.cos(a) * innerEndOffset,
+      y: p2.y - Math.sin(a) * innerEndOffset
+    };
+
+    const visibleGap = Math.max(0, dist(leftInner.x, leftInner.y, rightInner.x, rightInner.y));
+    const centerX = (leftInner.x + rightInner.x) / 2;
+    const centerY = (leftInner.y + rightInner.y) / 2;
+
+    // Bande graduée
+    drawCenterScale(a, centerX, centerY, visibleGap);
+
+    // Corps noirs devant
     drawBody(leftBodyCenter.x, leftBodyCenter.y, a, "10 N");
     drawBody(rightBodyCenter.x, rightBodyCenter.y, a, "10 N");
 
+    // Anneaux latéraux
     drawSideRing(p1.x, p1.y, a, "left");
     drawSideRing(p2.x, p2.y, a, "right");
 
+    // Pastilles
     drawPastille(p1.x, p1.y, "#ffd8d8", "#ff2323", "#ff3434");
     drawPastille(p2.x, p2.y, "#dff3ff", "#2233ff", "#1b93ff");
 
+    // Mains
     updateHands(a);
 
     requestAnimationFrame(drawScene);
